@@ -1,0 +1,18 @@
+[package]
+name = "tabby_worker_manager"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "tabby_worker_manager"
+path = "src/lib.rs"
+
+[[bin]]
+name = "tabby_worker_manager_cli"
+path = "src/main.rs"
+
+[dependencies]
+bollard = "0.15"
+tokio = { version = "1.36", features = ["full"] }
