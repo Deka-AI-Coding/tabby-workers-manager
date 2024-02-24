@@ -4,7 +4,13 @@ extern crate tokio;
 mod service;
 use service::{prelude::*, Service};
 
+mod config;
+
+mod user;
+use user::AuthenticatedUser;
+
 use actix_web::{get, put, web, App, HttpServer, Responder};
+use clap::Parser;
 use serde::Serialize;
 use tabby_worker_manager::TabbyWorkerZookeeper;
 
@@ -42,6 +48,7 @@ async fn get_worker(
 async fn start_worker(
     service: web::Data<Service>,
     path_params: web::Path<String>,
+    _: AuthenticatedUser,
 ) -> Result<impl Responder, tabby_worker_manager::Error> {
     let name = path_params.into_inner();
     let worker = service.start_worker(&name).await?;
@@ -58,6 +65,7 @@ async fn start_worker(
 async fn stop_worker(
     service: web::Data<Service>,
     path_params: web::Path<String>,
+    _: AuthenticatedUser,
 ) -> Result<impl Responder, tabby_worker_manager::Error> {
     let name = path_params.into_inner();
     let worker = service.stop_worker(&name).await?;
@@ -72,18 +80,22 @@ async fn stop_worker(
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
-    HttpServer::new(|| {
+    let config = config::Config::parse();
+    let port = config.port;
+
+    HttpServer::new(move || {
         let zookeeper = TabbyWorkerZookeeper::default();
         let service = Service::new(zookeeper);
 
         App::new()
             .app_data(web::Data::new(service))
+            .app_data(web::Data::new(config.clone()))
             .service(get_workers)
             .service(get_worker)
             .service(start_worker)
             .service(stop_worker)
     })
-    .bind(("0.0.0.0", 8081))?
+    .bind(("0.0.0.0", port))?
     .run()
     .await
 }
