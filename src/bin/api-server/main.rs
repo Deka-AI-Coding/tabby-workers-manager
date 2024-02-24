@@ -1,29 +1,18 @@
 extern crate tabby_worker_manager;
 extern crate tokio;
 
-use actix_web::{get, web, App, HttpResponse, HttpServer, Responder};
-use serde::Serialize;
-use tabby_worker_manager::{TabbyWorkerState, TabbyWorkerZookeeper};
+mod service;
+use service::{prelude::*, Service};
 
-#[derive(Serialize)]
-struct WorkerInfo {
-    name: String,
-    state: TabbyWorkerState,
-}
+use actix_web::{get, web, App, HttpServer, Responder};
+use serde::Serialize;
+use tabby_worker_manager::TabbyWorkerZookeeper;
 
 #[get("/")]
 async fn get_workers(
-    zookeeper: web::Data<TabbyWorkerZookeeper>,
+    service: web::Data<Service>,
 ) -> Result<impl Responder, tabby_worker_manager::Error> {
-    let zookeeper = zookeeper.into_inner();
-    let names = zookeeper.manager_names().await?;
-
-    let mut workers = vec![];
-    for name in names {
-        let manager = zookeeper.manager(&name).await?;
-        let state = manager.state().await?;
-        workers.push(WorkerInfo { name, state });
-    }
+    let workers = service.get_workers().await?;
 
     #[derive(Serialize)]
     struct Workers {
@@ -33,14 +22,32 @@ async fn get_workers(
     Ok(web::Json(Workers { workers }))
 }
 
+#[get("/{name}")]
+async fn get_worker(
+    service: web::Data<Service>,
+    path_params: web::Path<String>,
+) -> Result<impl Responder, tabby_worker_manager::Error> {
+    let name = path_params.into_inner();
+    let worker = service.get_worker(&name).await?;
+
+    #[derive(Serialize)]
+    struct Worker {
+        worker: WorkerInfo,
+    }
+
+    Ok(web::Json(Worker { worker }))
+}
+
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
     HttpServer::new(|| {
         let zookeeper = TabbyWorkerZookeeper::default();
+        let service = Service::new(zookeeper);
 
         App::new()
-            .app_data(web::Data::new(zookeeper))
+            .app_data(web::Data::new(service))
             .service(get_workers)
+            .service(get_worker)
     })
     .bind(("0.0.0.0", 8081))?
     .run()
