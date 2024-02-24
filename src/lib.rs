@@ -94,4 +94,9 @@ impl TabbyWorkerZookeeper {
             .cloned()
             .map(TabbyWorkerManager::new)
     }
+
+    /// Returns all worker names
+    pub async fn manager_names(&self) -> Result<Vec<String>> {
+        Ok(self.workers.iter().map(|w| w.name.clone()).collect())
+    }
 }

@@ -1,3 +1,5 @@
+use serde::Serialize;
+
 /// Tabby worker types
 #[derive(Debug, Clone)]
 pub enum TabbyWorkerType {
@@ -26,7 +28,7 @@ pub enum TabbyWorkerHandler {
 }
 
 /// State of worker
-#[derive(Debug, Clone)]
+#[derive(Serialize, Debug, Clone)]
 pub enum TabbyWorkerState {
     /// Worked is offline or down
     Down,
