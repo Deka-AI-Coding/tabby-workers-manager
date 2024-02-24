@@ -4,7 +4,7 @@ extern crate tokio;
 mod service;
 use service::{prelude::*, Service};
 
-use actix_web::{get, web, App, HttpServer, Responder};
+use actix_web::{get, put, web, App, HttpServer, Responder};
 use serde::Serialize;
 use tabby_worker_manager::TabbyWorkerZookeeper;
 
@@ -38,6 +38,38 @@ async fn get_worker(
     Ok(web::Json(Worker { worker }))
 }
 
+#[put("/{name}/start")]
+async fn start_worker(
+    service: web::Data<Service>,
+    path_params: web::Path<String>,
+) -> Result<impl Responder, tabby_worker_manager::Error> {
+    let name = path_params.into_inner();
+    let worker = service.start_worker(&name).await?;
+
+    #[derive(Serialize)]
+    struct Worker {
+        worker: WorkerInfo,
+    }
+
+    Ok(web::Json(Worker { worker }))
+}
+
+#[put("/{name}/stop")]
+async fn stop_worker(
+    service: web::Data<Service>,
+    path_params: web::Path<String>,
+) -> Result<impl Responder, tabby_worker_manager::Error> {
+    let name = path_params.into_inner();
+    let worker = service.stop_worker(&name).await?;
+
+    #[derive(Serialize)]
+    struct Worker {
+        worker: WorkerInfo,
+    }
+
+    Ok(web::Json(Worker { worker }))
+}
+
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
     HttpServer::new(|| {
@@ -48,6 +80,8 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::Data::new(service))
             .service(get_workers)
             .service(get_worker)
+            .service(start_worker)
+            .service(stop_worker)
     })
     .bind(("0.0.0.0", 8081))?
     .run()

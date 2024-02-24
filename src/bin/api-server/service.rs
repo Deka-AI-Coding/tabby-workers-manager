@@ -52,4 +52,36 @@ impl Service {
 
         Ok(info)
     }
+
+    /// Starts worker with given name
+    pub async fn start_worker(&self, name: &str) -> Result<WorkerInfo> {
+        let name = self
+            .zookeeper
+            .manager_names()
+            .await?
+            .into_iter()
+            .find(|n| n == name)
+            .ok_or(Error::WorkerNotFound(name.to_owned()))?;
+
+        let manager = self.zookeeper.manager(&name).await?;
+        manager.start().await?;
+
+        self.get_worker(&name).await
+    }
+
+    /// Starts worker with given name
+    pub async fn stop_worker(&self, name: &str) -> Result<WorkerInfo> {
+        let name = self
+            .zookeeper
+            .manager_names()
+            .await?
+            .into_iter()
+            .find(|n| n == name)
+            .ok_or(Error::WorkerNotFound(name.to_owned()))?;
+
+        let manager = self.zookeeper.manager(&name).await?;
+        manager.stop().await?;
+
+        self.get_worker(&name).await
+    }
 }
