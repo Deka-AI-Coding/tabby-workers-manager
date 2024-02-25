@@ -1,10 +1,10 @@
-use std::{
-    future::{Future, IntoFuture},
-    pin::Pin,
-};
+use std::future::Future;
+use std::pin::Pin;
 
 use actix_web::{
-    dev::Payload, http::header::ToStrError, web, FromRequest, HttpRequest, ResponseError,
+    dev::Payload,
+    http::{header::ToStrError, StatusCode},
+    web, FromRequest, HttpRequest, ResponseError,
 };
 use thiserror::Error;
 
@@ -17,14 +17,23 @@ pub enum UserError {
     #[error("No user found for this key")]
     NoUser,
 
-    #[error("Cannot get ket from the server")]
+    #[error("Cannot get key from the server")]
     FailedToGetAuthKey,
 
     #[error("Cannot convert to string: {0}")]
-    ToSTringError(#[from] ToStrError),
+    ToStringError(#[from] ToStrError),
 }
 
-impl ResponseError for UserError {}
+impl ResponseError for UserError {
+    fn status_code(&self) -> StatusCode {
+        match self {
+            UserError::FailedToGetAuthKey => StatusCode::INTERNAL_SERVER_ERROR,
+            UserError::NoHeader => StatusCode::UNAUTHORIZED,
+            UserError::NoUser => StatusCode::UNAUTHORIZED,
+            UserError::ToStringError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+        }
+    }
+}
 
 pub struct AuthenticatedUser {}
 
