@@ -9,7 +9,6 @@ edition = "2021"
 name = "tabby_worker_manager"
 path = "src/lib.rs"
 
-
 [dependencies]
 actix-web = "4"
 async-trait = "0.1"

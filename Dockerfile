@@ -12,8 +12,8 @@ RUN cargo build --release --frozen --offline
 
 FROM rust:1.75 AS runtime
 
-COPY --from=build /src/target/release/tabby_worker_manager_cli /usr/local/bin/
+COPY --from=build /src/target/release/api-server /usr/local/bin/
 
 ENV PATH=$PATH:/usr/local/bin/
 
-ENTRYPOINT [ "/usr/local/bin/tabby_worker_manager_cli" ]
+ENTRYPOINT [ "/usr/local/bin/api-server" ]
