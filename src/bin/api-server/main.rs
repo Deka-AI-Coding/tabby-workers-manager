@@ -2,6 +2,7 @@ extern crate tabby_worker_manager;
 extern crate tokio;
 
 mod service;
+use env_logger::Env;
 use service::{prelude::*, Service};
 
 mod config;
@@ -9,7 +10,7 @@ mod config;
 mod user;
 use user::AuthenticatedUser;
 
-use actix_web::{get, put, web, App, HttpServer, Responder};
+use actix_web::{get, middleware::Logger, put, web, App, HttpServer, Responder};
 use clap::Parser;
 use serde::Serialize;
 use tabby_worker_manager::TabbyWorkerZookeeper;
@@ -83,6 +84,8 @@ async fn main() -> std::io::Result<()> {
     let config = config::Config::parse();
     let port = config.port;
 
+    env_logger::init_from_env(Env::default().default_filter_or("info"));
+
     HttpServer::new(move || {
         let zookeeper = TabbyWorkerZookeeper::default();
         let service = Service::new(zookeeper);
@@ -94,6 +97,7 @@ async fn main() -> std::io::Result<()> {
             .service(get_worker)
             .service(start_worker)
             .service(stop_worker)
+            .wrap(Logger::default())
     })
     .bind(("0.0.0.0", port))?
     .run()
